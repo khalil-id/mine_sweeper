@@ -1,0 +1,210 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include<windows.h>
+
+#define ROWS 10
+#define COLS 10
+//#define MINE_COUNT
+
+// ANSI escape codes for colors
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
+char board[ROWS][COLS];
+char visible[ROWS][COLS];
+int revealed[ROWS][COLS];
+
+// Function to initialize the board with mines randomly placed
+void initializeBoard(int MINE_COUNT) {
+	int i,j;
+    for(i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            board[i][j] = '.';
+            visible[i][j] = 'X';
+            revealed[i][j] = 0;
+        }
+    }
+
+    srand(time(NULL));
+    for (i = 0; i < MINE_COUNT; i++) {
+        int row = rand() % ROWS;
+        int col = rand() % COLS;
+        if (board[row][col] == 'm') {
+            i--;
+        } else {
+            board[row][col] = 'm';
+        }
+    }
+}
+
+void printBoard() {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    printf("\n  ");
+    int i,j;
+    for (i = 0; i < COLS; i++) {
+        printf("%d ", i);
+    }
+    printf("\n");
+
+    for (i = 0; i < ROWS; i++) {
+        printf("%d ", i);
+        for (j = 0; j < COLS; j++) {
+            if (visible[i][j] == 'm') {
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED); // Set color to red
+                printf("m ");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
+            } else if (visible[i][j] == 'd') {
+                SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN); // Set color to green
+                printf("F ");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
+            } else if (visible[i][j] >= '1' && visible[i][j] <= '8') {
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN); // Set color to yellow
+                printf("%c ", visible[i][j]);
+                //SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
+            }else if ( board[i][j] != 'm' && revealed[i][j]==1 ) {
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN); // Set color to yellow
+                printf(". ");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
+            } else {
+                SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN); // Set color to cyan
+                printf("X ");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
+            }
+        }
+        printf("\n");SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+    }
+    
+}
+
+// Function to count the number of mines in the adjacent cells
+int countMines(int row, int col) {
+    int i, j, count = 0;
+    for (i = row - 1; i <= row + 1; i++) {
+        for (j = col - 1; j <= col + 1; j++) {
+            if (i >= 0 && i < ROWS && j >= 0 && j < COLS) {
+                if (board[i][j] == 'm') {
+                    count++;
+                }
+            }
+        }
+    }
+    return count;
+}
+
+// Recursive function to reveal cells on the board
+void reveal(int row, int col) {
+    // Check if the row and column are within the bounds of the board
+    if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
+        return;
+    }
+
+    // Check if the cell has already been revealed
+    if (visible[row][col] != 'X') {
+        return;
+    }
+
+    // Reveal the cell
+    visible[row][col] = board[row][col];
+
+    // If the cell contains a mine, return
+    if (board[row][col] == 'm') {
+        return;
+    }
+
+    // Count the number of mines in the adjacent cells
+    int mineCount = countMines(row, col);
+
+    // If there are mines in the adjacent cells, show the number and return
+    if (mineCount > 0) {
+        visible[row][col] = '0' + mineCount;
+        return;
+    }
+
+    // If there are no mines, reveal all adjacent cells that are not mines
+    int i,j;
+    for (i = row - 1; i <= row + 1 ; i++) {
+        for (j = col - 1; j <= col + 1 ; j++) {
+            reveal(i, j);
+            if(visible[row][col] != 'X')
+            	revealed[i][j]=1;
+        }
+    }
+}
+
+void addFlag(int row, int col) {
+    if (visible[row][col] == 'X') {
+        visible[row][col] = 'd';
+    }
+}
+
+// Function to remove a flag at the specified position
+void removeFlag(int row, int col) {
+    if (visible[row][col] == 'd') {
+        visible[row][col] = 'X';
+    }
+}
+
+int main() {
+	printf("--level-- \n1-debutant\n2-moyen\n3-dificile\n");
+	int level, minesCount;
+	scanf("%d",&level);
+	int MINE_COUNT = level * 10;
+    initializeBoard(MINE_COUNT);
+
+    int gameOver = 0;
+    while (!gameOver) {
+        printBoard();
+
+        char action;
+        int row, col;
+        printf("Enter action (r for reveal, f to add flag, d to remove flag): ");
+        scanf(" %c", &action); // Note the space before %c to consume any leading whitespace
+
+        if (action == 'r') {
+            printf("Enter row and column to reveal (ex: 2 4): ");
+            scanf("%d %d", &row, &col);
+
+            if (board[row][col] == 'm') {
+                gameOver = 1;
+                visible[row][col] = 'm';
+                printBoard();
+                printf("You hit a mine! Game over.\n");
+            } else {
+                reveal(row, col);
+            }
+        } else if (action == 'f') {
+            printf("Enter row and column to add flag (ex: 2 4): ");
+            scanf("%d %d", &row, &col);
+            addFlag(row, col);
+        } else if (action == 'd') {
+            printf("Enter row and column to remove flag (ex: 2 4): ");
+            scanf("%d %d", &row, &col);
+            removeFlag(row, col);
+        } else {
+            printf("Invalid action. Please enter 'r', 'f', or 'd'.\n");
+        }
+
+        int i, j, unrevealedCount = 0;
+        for (i = 0; i < ROWS; i++) {
+            for (j = 0; j < COLS; j++) {
+                if (visible[i][j] == 'X') {
+                    unrevealedCount++;
+                }
+            }
+        }
+
+        if (unrevealedCount == MINE_COUNT) {
+            gameOver = 1;
+            printBoard();
+            printf("Congratulations! You found all the mines!\n");
+        }
+    }
+
+    return 0;
+}
