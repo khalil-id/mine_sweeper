@@ -3,11 +3,10 @@
 #include <time.h>
 #include<windows.h>
 
-#define ROWS 10
-#define COLS 10
-//#define MINE_COUNT
+#define ROWS 10		//lignes
+#define COLS 10		//colonnes
 
-// ANSI escape codes for colors
+// Codes d'echappement ANSI pour les couleurs
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -16,11 +15,11 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-char board[ROWS][COLS];
-char visible[ROWS][COLS];
-int revealed[ROWS][COLS];
+char board[ROWS][COLS];		// Tableau principal representant l'etat actuel du jeu: m, 0->8
+char visible[ROWS][COLS];	// Tableau visible par le joueur, affichant les cellules decouvertes ou marquees: m, d, 0->8
+int revealed[ROWS][COLS];	// Tableau indiquant si une cellule a ete revelee(1) ou non(0) par le joueur
 
-// Function to initialize the board with mines randomly placed
+// Fonction pour initialiser le tableau avec des mines placees au hasard
 void initializeBoard(int MINE_COUNT) {
 	int i,j;
     for(i = 0; i < ROWS; i++) {
@@ -43,6 +42,7 @@ void initializeBoard(int MINE_COUNT) {
     }
 }
 
+// Affiche le tableau de jeu de style démineur dans la console
 void printBoard() {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     printf("\n");
@@ -50,36 +50,37 @@ void printBoard() {
     
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLS; j++) {
-            if (visible[i][j] == 'm') {
+            if (visible[i][j] == 'm') {		//Les mines par "m" en rouge
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED); // Set color to red
                 printf("  m   ");
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
-            } else if (visible[i][j] == 'd') {
+            } else if (visible[i][j] == 'd') {	//Les drapeaux par "F" en vert
                 SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN); // Set color to green
                 printf("  F   ");
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
-            } else if (visible[i][j] >= '1' && visible[i][j] <= '8') {
+            } else if (visible[i][j] >= '1' && visible[i][j] <= '8') {	//Les chiffres (1 a 8) en jaune
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN); // Set color to yellow
                 printf("  %c   ", visible[i][j]);
                 //SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
-            } else if(!( board[i][j] != 'm' && revealed[i][j]==1 )){
+            } else if(!( board[i][j] != 'm' && revealed[i][j]==1 )){	//Les cellules non révélées avec leur position en cyan
                 SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN); // Set color to cyan
                 char buffer[10];
                 sprintf(buffer, "[%d:%d]", i, j);
                 printf("%s ", buffer);
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
-            }else{
+            }else{			//Les autres cellules par un point (.) en jaune
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN); // Set color to yellow
                 printf("  .   ");
                 SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset color
             }
         }
-        printf("\n");SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        printf("\n");
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
     
 }
 
-// Function to count the number of mines in the adjacent cells
+//Fonction pour compter le nombre de mines dans les cellules adjacentes
 int countMines(int row, int col) {
     int i, j, count = 0;
     for (i = row - 1; i <= row + 1; i++) {
@@ -94,36 +95,36 @@ int countMines(int row, int col) {
     return count;
 }
 
-// Recursive function to reveal cells on the board
+// Fonction recursive pour reveler les cellules du tableau
 void reveal(int row, int col) {
-    // Check if the row and column are within the bounds of the board
+    // Vérifiez si la ligne et la colonne sont dans les limites du tableau
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
         return;
     }
 
-    // Check if the cell has already been revealed
+    // Vérifiez si la cellule a deja ete revelee
     if (visible[row][col] != 'X') {
         return;
     }
 
-    // Reveal the cell
+    // Reveler la cellule
     visible[row][col] = board[row][col];
 
-    // If the cell contains a mine, return
+    // si la cellule contient une mine, retournez
     if (board[row][col] == 'm') {
         return;
     }
 
-    // Count the number of mines in the adjacent cells
+    // Comptez le nombre de mines dans les cellules adjacentes
     int mineCount = countMines(row, col);
 
-    // If there are mines in the adjacent cells, show the number and return
+    // S'il y a des mines dans les cellules adjacentes, montrez le numéro et retournez
     if (mineCount > 0) {
         visible[row][col] = '0' + mineCount;
         return;
     }
 
-    // If there are no mines, reveal all adjacent cells that are not mines
+    // S'il n'y a pas de mines, revelez toutes les cellules adjacentes qui ne sont pas des mines.
     int i,j;
     for (i = row - 1; i <= row + 1 ; i++) {
         for (j = col - 1; j <= col + 1 ; j++) {
@@ -133,29 +134,30 @@ void reveal(int row, int col) {
         }
     }
 }
-
+//fonction pour ajouter le drapeau
 void addFlag(int row, int col) {
     if (visible[row][col] == 'X') {
         visible[row][col] = 'd';
     }
 }
 
-// Function to remove a flag at the specified position
+// fonction pour supprimer le drapeeau a l'endroit specifie
 void removeFlag(int row, int col) {
     if (visible[row][col] == 'd') {
         visible[row][col] = 'X';
     }
 }
 
+//la main fonction
 int main() {
 	printf("--level-- \n1-debutant\n2-moyen\n3-dificile\n");
 	int level, minesCount;
 	scanf("%d",&level);
 	int MINE_COUNT = level * 10;
-    initializeBoard(MINE_COUNT);
+    	initializeBoard(MINE_COUNT);
 
-    int gameOver = 0;
-    while (!gameOver) {
+  	  int gameOver = 0;
+  	  while (!gameOver) {
         printBoard();
 
         char action;
