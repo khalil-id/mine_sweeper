@@ -1,2 +1,2 @@
 # mine_sweeper
-mine_sweeper game
+cette mine_sweeper jeu a ete creer en C par Idadoub ElKhalil et Ayoub Abram
